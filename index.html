@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -18,7 +19,7 @@
       }
 
       body {
-        background-color: #e6e7f3;
+        background-color: #eff0fe;
       }
 
       #cards-container {
@@ -37,6 +38,53 @@
 
       .element-wrapper:hover .element-controls {
         opacity: 1;
+      }
+
+      .drop-placeholder {
+        height: 120px;
+        background-color: rgba(99, 102, 241, 0.1);
+        border: 2px dashed rgba(99, 102, 241, 0.4);
+        border-radius: 8px;
+        margin: 1.25rem 0;
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(99, 102, 241, 0.8);
+        font-weight: 500;
+        font-size: 1.5rem;
+        position: relative;
+        z-index: 102;
+      }
+
+      body.dragging-active #dragging-overlay {
+        opacity: 1;
+      }
+
+      body.dragging-active .carrousel-card{
+        box-shadow: 4px 7px 36px 1px rgb(128 131 147);
+      }
+
+      #dragging-overlay {
+        opacity: 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgb(192 193 213);
+        backdrop-filter: blur(3px);
+        z-index: 100;
+        transition: all 0.4s ease-in-out;
+      }
+
+      #cards-container{
+        z-index: 101;
+      }
+
+      #sidebar-container {
+        position: fixed;
+        z-index: 101;
       }
     </style>
   </head>
@@ -284,7 +332,7 @@
       `;
       cardElementsHTML += "</div>";
 
-      let cardHTML = `<div class="carrousel-card group w-[1080px] h-[1350px] overflow-hidden aspect-[1080/1350] bg-white text-[#121212] flex flex-col p-20 pb-48 relative">
+      let cardHTML = `<div class="carrousel-card group w-[1080px] h-[1350px] overflow-hidden aspect-[1080/1350] bg-white text-[#121212] flex flex-col p-20 pb-48 relative rounded-lg">
         ${cardElementsHTML}
       `;
 
@@ -317,6 +365,46 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      const sidebarContainer = document.getElementById("sidebar-container");
+      const sidebarElements = [
+        {type: "IMAGE", icon: "bi-card-image", text: "Imagem", iconSize: "text-xl"},
+        {type: "H1", icon: "bi-type-h1", text: "Título (H1)", iconSize: "text-xl"},
+        {type: "H2", icon: "bi-type-h2", text: "Título (H2)", iconSize: "text-xl"},
+        {type: "CONTENT", icon: "bi-type", text: "Texto (parágrafo)", iconSize: "text-2xl"},
+        {type: "QUOTE", icon: "bi-blockquote-left", text: "Citação", iconSize: "text-2xl"},
+        {type: "CTA", icon: "bi-arrow-up-right-square", text: "CTA", iconSize: "text-xl"},
+      ];
+
+      sidebarElements.forEach((element) => {
+        const elementDiv = document.createElement("div");
+        elementDiv.className =
+          "w-full min-h-16 flex items-center gap-2 rounded-md bg-[#ecedff] border border-slate-400/20 hover:border-indigo-500/50 hover:shadow-lg transition-all duration-300 ease cursor-grab px-3 py-3";
+        elementDiv.draggable = true;
+        elementDiv.dataset.elementType = element.type;
+        elementDiv.innerHTML = `
+            <div class="w-[26px] flex items-center justify-center shrink-0">
+              <i class="bi ${element.icon} ${element.iconSize} text-indigo-500 font-semibold"></i>
+            </div>
+            <span class="text-base font-medium text-slate-700">${element.text}</span>
+        `;
+        sidebarContainer.appendChild(elementDiv);
+
+        elementDiv.addEventListener("dragstart", (event) => {
+          document.body.classList.add("dragging-active");
+          event.dataTransfer.setData("text/plain", element.type);
+          event.dataTransfer.effectAllowed = "move";
+          setTimeout(() => {
+            elementDiv.classList.add("opacity-30");
+          }, 0);
+        });
+
+        elementDiv.addEventListener("dragend", (event) => {
+          document.body.classList.remove("dragging-active");
+          elementDiv.classList.remove("opacity-30");
+          document.querySelectorAll(".drop-placeholder").forEach((p) => p.remove());
+        });
+      });
+
       const contentTextarea = document.getElementById("content");
       // Set initial value and trim it to avoid leading/trailing whitespace issues
       contentTextarea.value = content.trim();
@@ -378,7 +466,7 @@
             newElementStr = `%CTA%Nova chamada para ação`;
             break;
           case "IMAGE":
-            newElementStr = `%IMAGE%"./placeholder.png",CLASS="max-h-[436px]"`;
+            newElementStr = `%IMAGE%"https://placehold.co/920x420",CLASS="max-h-[436px]"`;
             break;
         }
 
@@ -425,6 +513,93 @@
         },
         true
       );
+
+      cardsContainer.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        const cardElementsContainer = event.target.closest(".card-elements-container");
+        if (cardElementsContainer) {
+          let placeholder = cardElementsContainer.querySelector(".drop-placeholder");
+          if (!placeholder) {
+            placeholder = document.createElement("div");
+            placeholder.className = "drop-placeholder";
+            placeholder.textContent = "Arraste o elemento aqui";
+          }
+
+          const afterElement = getDragAfterElement(cardElementsContainer, event.clientY);
+          if (afterElement == null) {
+            const addTrigger = cardElementsContainer.querySelector(".add-element-trigger");
+            cardElementsContainer.insertBefore(placeholder, addTrigger);
+          } else {
+            cardElementsContainer.insertBefore(placeholder, afterElement);
+          }
+        }
+      });
+
+      cardsContainer.addEventListener("dragleave", (event) => {
+        if (event.target.closest(".card-elements-container") && !event.relatedTarget?.closest(".card-elements-container")) {
+          document.querySelectorAll(".drop-placeholder").forEach((p) => p.remove());
+        }
+      });
+
+      cardsContainer.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const placeholder = document.querySelector(".drop-placeholder");
+        if (!placeholder) return;
+
+        const cardElementsContainer = placeholder.closest(".card-elements-container");
+        const cardDOM = placeholder.closest(".carrousel-card");
+        const elementType = event.dataTransfer.getData("text/plain");
+
+        if (!cardElementsContainer || !cardDOM || !elementType) {
+          placeholder.remove();
+          return;
+        }
+
+        let newElementStr = "";
+        switch (elementType) {
+          case "H1": newElementStr = `%H1%Novo Título Principal`; break;
+          case "H2": newElementStr = `%H2%Novo Título`; break;
+          case "CONTENT": newElementStr = `%CONTENT%Novo parágrafo.`; break;
+          case "QUOTE": newElementStr = `%QUOTE%Nova citação.`; break;
+          case "CTA": newElementStr = `%CTA%Nova chamada para ação`; break;
+          case "IMAGE": newElementStr = `%IMAGE%"https://placehold.co/920x420",CLASS="max-h-[436px]"`; break;
+        }
+
+        if (newElementStr) {
+          const allCards = Array.from(document.querySelectorAll(".carrousel-card"));
+          const cardIndex = allCards.indexOf(cardDOM);
+          const elementsInCard = Array.from(cardElementsContainer.children);
+          const dropIndex = elementsInCard.indexOf(placeholder);
+
+          const textarea = document.getElementById("content");
+          const cardContents = textarea.value.trim().split(/\s*###\s*/);
+
+          if (cardContents[cardIndex] !== undefined) {
+            let lines = cardContents[cardIndex].trim() ? cardContents[cardIndex].trim().split('\n') : [];
+            lines.splice(dropIndex, 0, newElementStr);
+            cardContents[cardIndex] = lines.join('\n');
+            textarea.value = cardContents.join("\n###\n");
+            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+        placeholder.remove();
+      });
+
+      function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll(".element-wrapper:not(.dragging)")];
+        return draggableElements.reduce(
+          (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+              return {offset: offset, element: child};
+            } else {
+              return closest;
+            }
+          },
+          {offset: Number.NEGATIVE_INFINITY}
+        ).element;
+      }
 
       // Handle image actions (remove/replace card image, replace footer image)
       cardsContainer.addEventListener("click", (event) => {
@@ -662,26 +837,36 @@
     }
   </script>
   <body>
-    <div class="max-w-full w-[580px] flex flex-col mx-auto gap-5 px-6 py-10">
-      <span class="text-sm text-gray-500 mx-auto text-start w-full">Content input:</span>
-      <textarea id="content" class="w-full max-w-[540px] p-4 border border-gray-300 rounded-lg text-sm" rows="16" placeholder="Digite o conteúdo do card aqui..."></textarea>
+    <!-- Sidebar -->
+    <div id="sidebar-container" class="w-64 h-full fixed top-0 left-0 bg-[#eff0fe] border-r border-slate-500/10 flex flex-col gap-4 py-5 px-4">
+      <span class="text-sm font-semibold text-slate-800 leading-5 mb-1">
+        Arraste para adicionar elementos ao card:
+      </span>
     </div>
-    <div id="cards-container" class="flex flex-col items-center justify-center gap-10 px-6 py-10">
-      <!-- Cards will be generated here -->
-    </div>
-    <div class="w-[540px] max-w-full mx-auto flex flex-col items-center justify-center gap-5 p-10 rounded-xl cursor-pointer border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/70 hover:shadow-lg bg-indigo-500/10 transition-all duration-300 ease mb-12">
-      <div class="text-xl font-semibold">
-        <span class="text-indigo-500">+ Adicionar card</span>
+    <!-- Content -->
+    <div id="main-content" class="w-full flex flex-col pl-64">
+      <div class="max-w-full w-[580px] flex flex-col mx-auto gap-5 px-6 py-10">
+        <span class="text-sm text-gray-500 mx-auto text-start w-full">Content input:</span>
+        <textarea id="content" class="w-full max-w-[540px] p-4 border border-gray-300 rounded-md text-xs text-slate-600 focus:outline-none outline-none focus:border-indigo-500/70 transition-all duration-300 ease" rows="16" placeholder="Digite o conteúdo do card aqui..."></textarea>
       </div>
-    </div>
+      <div id="cards-container" class="flex flex-col items-center justify-center gap-10 px-6 py-10">
+        <!-- Cards will be generated here -->
+      </div>
+      <div class="w-[540px] max-w-full mx-auto flex flex-col items-center justify-center gap-5 p-10 rounded-xl cursor-pointer border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/70 hover:shadow-lg bg-indigo-500/10 transition-all duration-300 ease mb-12">
+        <div class="text-xl font-semibold">
+          <span class="text-indigo-500">+ Adicionar card</span>
+        </div>
+      </div>
 
-    <!-- Download Button -->
-    <div class="w-full max-w-[1080px] mx-auto flex justify-center gap-4 mb-12">
-      <button id="preview-btn" onclick="capturar()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Gerar e Visualizar</button>
-      <button id="download-all-btn" onclick="capturarTodos()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Baixar Todos</button>
-    </div>
+      <!-- Download Button -->
+      <div class="w-full max-w-[1080px] mx-auto flex justify-center gap-4 mb-12">
+        <button id="preview-btn" onclick="capturar()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Gerar e Visualizar</button>
+        <button id="download-all-btn" onclick="capturarTodos()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Baixar Todos</button>
+      </div>
 
-    <div id="resultado" class="w-full max-w-[1080px] mx-auto"></div>
+      <div id="resultado" class="w-full max-w-[1080px] mx-auto"></div>
+    </div>
+    <div id="dragging-overlay"></div>
 
     <!-- Modal -->
     <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center invisible opacity-0 transition-opacity duration-300 ease-in-out">
@@ -694,7 +879,6 @@
             </svg>
           </button>
         </div>
-
         <div>
           <label for="element-type-select" class="block text-sm font-medium text-gray-700 mb-2 tracking-9">Selecione o tipo de elemento que você quer adicionar:</label>
           <select id="element-type-select" class="w-full text-sm px-2 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-300 ease">
@@ -706,7 +890,6 @@
             <option value="CTA">Chamada para Ação (CTA)</option>
           </select>
         </div>
-
         <div class="flex justify-end items-center gap-2 pt-2">
           <button id="cancel-modal-btn" class="py-2 px-5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors">Cancelar</button>
           <button id="add-element-btn" class="py-2 px-5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm hover:shadow-md transition-all">Adicionar</button>
