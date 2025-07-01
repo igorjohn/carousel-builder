@@ -855,24 +855,24 @@
       <div id="cards-container" class="flex flex-col items-center justify-center gap-10 px-6 py-10">
         <!-- Cards will be generated here -->
       </div>
-      <div class="w-[540px] max-w-full mx-auto flex flex-col items-center justify-center gap-5 p-10 rounded-xl cursor-pointer border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/70 hover:shadow-lg bg-indigo-500/10 transition-all duration-300 ease mb-12">
+      <div class="w-[540px] max-w-full mx-auto flex flex-col items-center justify-center gap-5 p-10 rounded-xl cursor-pointer border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/70 hover:shadow-lg bg-indigo-500/10 transition-all duration-300 ease mb-12 z-[101]">
         <div class="text-xl font-semibold">
           <span class="text-indigo-500">+ Adicionar card</span>
         </div>
       </div>
 
       <!-- Download Button -->
-      <div class="w-full max-w-[1080px] mx-auto flex justify-center gap-4 mb-12">
+      <div class="w-full max-w-[1080px] mx-auto flex justify-center gap-4 mb-12 z-[101]">
         <button id="preview-btn" onclick="capturar()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Gerar e Visualizar</button>
         <button id="download-all-btn" onclick="capturarTodos()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Baixar Todos</button>
       </div>
 
-      <div id="resultado" class="w-full max-w-[1080px] mx-auto"></div>
+      <div id="resultado" class="w-full max-w-[1080px] mx-auto z-[101]"></div>
     </div>
     <div id="dragging-overlay"></div>
 
     <!-- Modal -->
-    <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center invisible opacity-0 transition-opacity duration-300 ease-in-out">
+    <div id="modal" class="fixed inset-0 bg-black/70 flex items-center justify-center invisible opacity-0 transition-opacity duration-300 ease-in-out z-[200]">
       <div id="modal-content" class="bg-white p-8 rounded-xl shadow-lg flex flex-col gap-5 w-[500px] max-w-[96vw] transform transition-transform duration-300 ease-in-out scale-95">
         <div class="flex justify-between items-start">
           <h2 class="text-lg font-semibold text-gray-800">Adicionar Elemento</h2>
