@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+
+      body {
+        background-color: #e6e7f3;
+      }
+
+      #cards-container {
+        zoom: 0.5;
+      }
+
+      .text-4xl,
+      .text-4xl * {
+        letter-spacing: -0.025em;
+      }
+
+      .element-wrapper .element-controls {
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+      }
+
+      .element-wrapper:hover .element-controls {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <script>
+    const content = `%IMAGE%"./assets/images/img-01.jpg",CLASS="max-h-[436px]"
+%H1%🚫 Por que 99% dos conteúdos não geram vendas?
+%CONTENT%Como saber se o meu conteúdo realmente converte?
+%CTA%Deslize para ver →
+###
+%H2%1. São criados com foco em "ensinar" e não em "converter"
+%CONTENT%A maioria dos criadores acredita que entregar valor é %B%entregar informação%/B%.
+%CONTENT%Só que %B%informação não vende. Clareza vende. Percepção vende. Tensão vende.%/B%
+%QUOTE%Explicar o que é marketing de conteúdo é fácil.%BR%%B%Fazer o leitor pensar "eu tô fazendo errado, preciso mudar isso agora" exige engenharia emocional.%/B%
+###
+%IMAGE%"./assets/images/img-02.png",CLASS="max-h-[420px]"
+%H2%2. Não existe uma narrativa que conduza o leitor até a tomada de decisão
+%CONTENT%Conteúdos "soltos", que começam e terminam do nada, %B%não geram momentum mental.%/B%
+%CONTENT%Sem tensão, sem quebra de padrão, sem fechamento estratégico, o conteúdo termina e a pessoa… %B%vai pra outro post.%/B% Ou pior: %B%fica mais informada, mas não mais propensa a comprar.%/B%
+###
+%H2%3. Tentam convencer com lógica — mas venda é emoção com justificativa racional
+%CONTENT%Criadores tentam explicar com argumentos técnicos o porquê de algo ser bom.
+%CONTENT%Só que ninguém compra porque é "útil".
+%CONTENT%A compra acontece quando o conteúdo desperta um %B%estado emocional específico:%/B%
+%CONTENT%→ "Isso foi feito pra mim."<br>→ "Como eu nunca vi isso antes?"<br>→ "Se eu não fizer isso agora, vou continuar travado."
+###
+%H2%4. Não existem estruturas. Só improviso
+%CONTENT%Postar sem estrutura é jogar dardo no escuro.
+%CONTENT%Conteúdos que convertem %B%seguem padrões testados de condução de atenção.%/B%
+%CONTENT%Eles não só entregam, eles %B%arquitetam.%/B%
+%CONTENT%E cada bloco (gancho, tensão, revelação, prova e CTA) tem uma %U%função específica%/U% no cérebro da audiência.
+###
+%IMAGE%"./assets/images/img-03.png",CLASS="max-h-[366px]"
+%H2%5. Não criam nenhuma nova percepção na mente do público
+%CONTENT%O bom conteúdo %B%não reafirma o que a pessoa já acredita.%/B%
+%CONTENT%Ele vira a chave. Ele dá um "estalo". Ele muda como ela enxerga o problema ou a solução.
+%QUOTE%Conteúdo que não muda a percepção → %B%não muda comportamento%/B% → %B%não gera conversão.%/B%
+###
+%H2%6. Falam com todo mundo — e, por isso, não movem ninguém
+%CONTENT%A copy rasa tenta ser "acessível" a todos. Resultado?
+%CONTENT%%B%Fica genérica, insossa, esquecível.%/B%
+%CONTENT%%G%Conteúdo que converte tem %B%opinião, tem direção, tem antagonismo.%/B%%/G%
+%CONTENT%Ele se posiciona. Ele atrai quem é o certo e repele quem não é.
+###
+%IMAGE%"./assets/images/img-04.jpg",CLASS="max-h-[366px]"
+%H2%7. Não criam antecipação, nem abrem loops mentais
+%CONTENT%O cérebro ama fechamento de ciclos.
+%QUOTE%%B%Tensão → Desfecho → Mini-transformação%/B%
+%CONTENT%Se o seu conteúdo não começa com uma %B%tensão%/B% e termina com uma %B%mini-transformação%/B% — %G%então, ele não cria desejo. Cria distração.%/G%
+###
+%H2%8. Nunca foram feitos para vender — foram feitos apenas para "postar"
+%CONTENT%A dura verdade é que:
+%QUOTE%%B%A maioria dos conteúdos nasce para manter o feed vivo. Não para conduzir a audiência a uma decisão de compra.%/B%
+%CONTENT%E é exatamente aí que mora a diferença entre um %U%mero "criador de conteúdo"%/U% e um %U%estrategista%/U% de %B%alta performance e múltiplos dígitos faturados.%/B%
+###
+%H1%Gostou desse conteúdo?
+%CONTENT%Compartilhe com quem você acha que também precisa dele.
+%IMAGE%"./assets/images/share.jpg",CLASS="h-[66px] !w-auto ml-[-16px] mt-1 opacity-50"`;
+
+    function parseContent(contentString) {
+      const cards = contentString
+        .trim()
+        .split(/\s*###\s*/)
+        .filter((card) => card.trim());
+      return cards.map((cardContent) => {
+        const lines = cardContent
+          .trim()
+          .split("\n")
+          .filter((line) => line.trim());
+        const card = {
+          elements: [],
+        };
+
+        lines.forEach((line) => {
+          if (line.includes("%IMAGE%")) {
+            const imagePart = line.split("%IMAGE%")[1].trim();
+            let src = "";
+            let imageClass = "";
+
+            // Safely extract the src and class attributes using regex
+            const srcMatch = imagePart.match(/^"([^"]+)"/);
+            if (srcMatch) {
+              src = srcMatch[1]; // The full URL, including the base64 prefix
+            }
+
+            const classMatch = imagePart.match(/CLASS="([^"]+)"/);
+            if (classMatch) {
+              imageClass = classMatch[1];
+            }
+            card.elements.push({type: "image", src: src, class: imageClass});
+          } else if (line.includes("%H1%")) {
+            card.elements.push({type: "h1", value: line.split("%H1%")[1]});
+          } else if (line.includes("%H2%")) {
+            card.elements.push({type: "h2", value: line.split("%H2%")[1]});
+          } else if (line.includes("%CONTENT%")) {
+            card.elements.push({type: "content", value: line.split("%CONTENT%")[1]});
+          } else if (line.includes("%QUOTE%")) {
+            card.elements.push({type: "quote", value: line.split("%QUOTE%")[1]});
+          } else if (line.includes("%CTA%")) {
+            card.elements.push({type: "cta", value: line.split("%CTA%")[1]});
+          }
+        });
+
+        return card;
+      });
+    }
+
+    function wrapElement(elementHTML, elementType, elementData = {}) {
+      const dataType = `data-type="${elementType}"`;
+      let dataAttributes = dataType;
+
+      if (elementType === "image") {
+        dataAttributes += ` data-class="${elementData.class || ""}"`;
+      }
+
+      return `
+            <div class="element-wrapper relative" ${dataAttributes}>
+                <div class="element-controls absolute top-1/2 -translate-y-1/2 right-full flex items-center mr-2 bg-gray-100 p-1 rounded-md shadow">
+                    <button class="drag-handle cursor-move p-1 text-gray-500 hover:text-gray-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                        </svg>
+                    </button>
+                    <button class="delete-element-btn p-1 text-red-500 hover:text-red-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                    </button>
+                </div>
+                ${elementHTML}
+            </div>
+        `;
+    }
+
+    function formatText(text) {
+      return text
+        .replace(/%B%(.*?)%\/B%/g, '<span class="font-bold">$1</span>')
+        .replace(/%I%(.*?)%\/I%/g, '<span class="italic">$1</span>')
+        .replace(/%U%(.*?)%\/U%/g, '<span class="underline">$1</span>')
+        .replace(/%G%(.*?)%\/G%/g, '<span class="text-[#282832] bg-[#fff344bb] py-0.5 rounded-md font-semibold">$1</span>')
+        .replace(/%BR%/g, "<br>");
+    }
+
+    function reverseFormatText(html) {
+      const g_class = "text-[#282832] bg-[#fff344bb] py-0.5 rounded-md font-semibold";
+      return html
+        .replace(new RegExp(`<span class="${g_class}">(.*?)</span>`, "gi"), "%G%$1%/G%")
+        .replace(/<span class="font-bold">(.*?)<\/span>/gi, "%B%$1%/B%")
+        .replace(/<span class="italic">(.*?)<\/span>/gi, "%I%$1%/I%")
+        .replace(/<span class="underline">(.*?)<\/span>/gi, "%U%$1%/U%")
+        .replace(/<br\s*\/?>/gi, "%BR%")
+        .replace(/&nbsp;/g, " ")
+        .trim();
+    }
+
+    function createFooter() {
+      return `
+        <div class="absolute bottom-0 left-0 w-full pb-24">
+          <div class="flex items-center justify-center gap-3">
+             <div data-footer-element="profile-pic" class="w-[80px] h-[80px] rounded-full shrink-0 flex relative overflow-hidden" style="background-image: url('./assets/images/igor.jpeg'); background-size: cover; background-position: center;">
+                 <div class="absolute top-0 left-0 w-full h-full bg-indigo-600/50 text-indigo-200 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-400 ease cursor-pointer">
+                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 shrink-0">
+                         <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                     </svg>
+                 </div>
+             </div>
+            <div class="flex flex-col gap-1">
+               <span data-footer-element="name" class="font-bold text-[32px] text-[#414150] flex items-center gap-1 outline-none focus:outline-none focus:ring-2 hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease leading-none" contenteditable="true">
+                Igor John
+                <div class="h-8 w-8 object-cover object-center shrink-0 flex" style="background-image: url('./assets/images/verified.webp'); background-size: cover; background-position: center;"></div>
+              </span>
+               <span data-footer-element="handle" class="text-3xl text-[#AAAAAA] flex items-center gap-1 mt-[8px] outline-none focus:outline-none focus:ring-2 hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease leading-none" contenteditable="true">@igorsjohn</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function createCard(cardData) {
+      let cardElementsHTML = '<div class="card-elements-container flex flex-col justify-center gap-6 grow">';
+
+      if (cardData.elements) {
+        cardData.elements.forEach((element) => {
+          let elementHTML = "";
+          if (element.type === "image") {
+            let imageClasses = "w-full object-cover object-center rounded-lg";
+            if (element.class) {
+              imageClasses += ` ${element.class}`;
+            } else {
+              imageClasses += " max-h-[436px]";
+            }
+            elementHTML = `
+                <div class="flex mx-auto mb-8 relative w-full rounded-xl">
+                    <img src="${element.src}" class="${imageClasses}" crossorigin="anonymous" />
+                    <div class="absolute top-0 left-0 w-full h-full flex items-center justify-center gap-6 rounded-lg shadow-lg border-4 border-dashed border-indigo-500 cursor-pointer bg-indigo-700/60 opacity-0 hover:opacity-100 transition-all duration-400 ease">
+                        <button class="text-white text-xl tracking-tight font-medium flex items-center gap-2 rounded-md max-w-[44%] py-3 px-6 bg-indigo-500 hover:bg-indigo-600 transition-all duration-400 ease cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 ml-[-2px]">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                            </svg>
+                            Substituir
+                        </button>
+                        <button class="text-white text-xl tracking-tight font-medium flex items-center gap-2 rounded-md max-w-[44%] py-3 px-6 bg-red-600 hover:bg-red-700 transition-all duration-400 ease cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 ml-[-2px]">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                            Remover
+                        </button>
+                    </div>
+                </div>`;
+            cardElementsHTML += wrapElement(elementHTML, element.type, {class: element.class});
+          } else if (element.type === "h1") {
+            elementHTML = `<div class="text-black text-6xl font-bold mb-6 outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable>${formatText(element.value)}</div>`;
+            cardElementsHTML += wrapElement(elementHTML, element.type);
+          } else if (element.type === "h2") {
+            elementHTML = `<div class="text-black text-5xl font-bold mb-3 outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable style="line-height: 3.25rem;">${formatText(element.value)}</div>`;
+            cardElementsHTML += wrapElement(elementHTML, element.type);
+          } else if (element.type === "content") {
+            elementHTML = `<div class="text-[#414150] text-4xl outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable>${formatText(element.value)}</div>`;
+            cardElementsHTML += wrapElement(elementHTML, element.type);
+          } else if (element.type === "quote") {
+            const quoteLines = element.value.split("%BR%");
+            let quoteHTML = '<div class="border-l-8 border-[#414150]/10 pl-8 py-2 flex flex-col gap-3 my-3">';
+            quoteLines.forEach((quoteLine) => {
+              quoteHTML += `<div class="text-[#414150] text-4xl outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable>${formatText(quoteLine)}</div>`;
+            });
+            quoteHTML += "</div>";
+            elementHTML = quoteHTML;
+            cardElementsHTML += wrapElement(elementHTML, element.type);
+          } else if (element.type === "cta") {
+            elementHTML = `<div class="text-indigo-500 text-4xl font-medium my-10 w-fit outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable>${formatText(element.value)}</div>`;
+            cardElementsHTML += wrapElement(elementHTML, element.type);
+          }
+        });
+      }
+      cardElementsHTML += `
+        <div class="add-element-trigger flex flex-row items-center justify-center gap-3 w-full cursor-pointer opacity-0 hover:!opacity-100 group-hover:opacity-50 group-hover:translate-y-[130%] h-[40px] mt-[-40px] transition-all duration-300 ease-in-out">
+            <div class="h-[2px] bg-slate-200 flex grow"></div>
+            <span class="text-slate-600 text-xl font-medium py-2 px-4 rounded-md bg-slate-100 border border-slate-300 transition-all duration-300 ease flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-6 h-6 shrink-0">
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              Adicionar elemento
+            </span>
+            <div class="h-[2px] bg-slate-200 flex grow"></div>
+        </div>
+      `;
+      cardElementsHTML += "</div>";
+
+      let cardHTML = `<div class="carrousel-card group w-[1080px] h-[1350px] overflow-hidden aspect-[1080/1350] bg-white text-[#121212] flex flex-col p-20 pb-48 relative">
+        ${cardElementsHTML}
+      `;
+
+      cardHTML += createFooter();
+      cardHTML += "</div>";
+
+      return cardHTML;
+    }
+
+    function generateCards(contentString) {
+      const cards = parseContent(contentString);
+      const container = document.getElementById("cards-container");
+      container.innerHTML = "";
+
+      cards.forEach((cardData) => {
+        container.innerHTML += createCard(cardData);
+      });
+
+      // Initialize SortableJS on each card's element container
+      const elementContainers = document.querySelectorAll(".card-elements-container");
+      elementContainers.forEach((container) => {
+        new Sortable(container, {
+          animation: 150,
+          handle: ".drag-handle",
+          onEnd: function () {
+            updateTextareaFromDOM();
+          },
+        });
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const contentTextarea = document.getElementById("content");
+      // Set initial value and trim it to avoid leading/trailing whitespace issues
+      contentTextarea.value = content.trim();
+
+      // Generate initial cards
+      generateCards(contentTextarea.value);
+
+      // --- MODAL LOGIC ---
+      let activeCardIndex = -1;
+      const modal = document.getElementById("modal");
+      const modalContent = document.getElementById("modal-content");
+      const closeModalBtn = document.getElementById("close-modal-btn");
+      const cancelModalBtn = document.getElementById("cancel-modal-btn");
+      const addElementBtn = document.getElementById("add-element-btn");
+      const elementTypeSelect = document.getElementById("element-type-select");
+
+      function openModal() {
+        modal.classList.remove("invisible", "opacity-0");
+        modalContent.classList.remove("scale-95");
+      }
+
+      function closeModal() {
+        modalContent.classList.add("scale-95");
+        modal.classList.add("opacity-0");
+        setTimeout(() => {
+          modal.classList.add("invisible");
+          activeCardIndex = -1; // Reset index
+        }, 300); // Match transition duration
+      }
+
+      closeModalBtn.addEventListener("click", closeModal);
+      cancelModalBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          closeModal();
+        }
+      });
+
+      addElementBtn.addEventListener("click", () => {
+        if (activeCardIndex === -1) return;
+
+        const elementType = elementTypeSelect.value;
+        let newElementStr = "";
+
+        switch (elementType) {
+          case "H1":
+            newElementStr = `%H1%Novo Título Principal`;
+            break;
+          case "H2":
+            newElementStr = `%H2%Novo Título`;
+            break;
+          case "CONTENT":
+            newElementStr = `%CONTENT%Novo parágrafo.`;
+            break;
+          case "QUOTE":
+            newElementStr = `%QUOTE%Nova citação.`;
+            break;
+          case "CTA":
+            newElementStr = `%CTA%Nova chamada para ação`;
+            break;
+          case "IMAGE":
+            newElementStr = `%IMAGE%"./placeholder.png",CLASS="max-h-[436px]"`;
+            break;
+        }
+
+        if (newElementStr) {
+          const textarea = document.getElementById("content");
+          const cardContents = textarea.value.trim().split(/\s*###\s*/);
+
+          if (cardContents[activeCardIndex] !== undefined) {
+            cardContents[activeCardIndex] = (cardContents[activeCardIndex].trim() + "\n" + newElementStr).trim();
+            textarea.value = cardContents.join("\n###\n");
+            textarea.dispatchEvent(new Event("input", {bubbles: true}));
+          }
+        }
+        closeModal();
+      });
+
+      // Update cards on textarea input
+      contentTextarea.addEventListener("input", (event) => {
+        generateCards(event.target.value);
+      });
+
+      // Two-way binding for card content and footer
+      const cardsContainer = document.getElementById("cards-container");
+      cardsContainer.addEventListener(
+        "blur",
+        (event) => {
+          const editedElement = event.target;
+          // Sync contenteditable fields in the card body with the textarea
+          if (editedElement.closest("[data-type]")) {
+            if (editedElement.hasAttribute("contenteditable")) {
+              updateTextareaFromDOM();
+            }
+          }
+          // Sync contenteditable fields in the footer across all cards
+          const footerElementType = editedElement.dataset.footerElement;
+          if (footerElementType === "name" || footerElementType === "handle") {
+            const newValue = editedElement.innerHTML;
+            document.querySelectorAll(`[data-footer-element="${footerElementType}"]`).forEach((el) => {
+              if (el !== editedElement) {
+                el.innerHTML = newValue;
+              }
+            });
+          }
+        },
+        true
+      );
+
+      // Handle image actions (remove/replace card image, replace footer image)
+      cardsContainer.addEventListener("click", (event) => {
+        const target = event.target;
+
+        // Handle opening the modal
+        const addElementTrigger = target.closest(".add-element-trigger");
+        if (addElementTrigger) {
+          const cardElement = addElementTrigger.closest(".carrousel-card");
+          const allCards = Array.from(document.querySelectorAll(".carrousel-card"));
+          activeCardIndex = allCards.indexOf(cardElement);
+          if (activeCardIndex !== -1) {
+            openModal();
+          }
+          return; // Stop further execution
+        }
+
+        const button = target.closest("button");
+
+        // Handle element deletion
+        if (button && button.classList.contains("delete-element-btn")) {
+          const elementWrapper = button.closest(".element-wrapper");
+          if (elementWrapper) {
+            elementWrapper.remove();
+            updateTextareaFromDOM();
+          }
+          return;
+        }
+
+        const imageContainer = target.closest('[data-type="image"]');
+        const profilePicContainer = target.closest('[data-footer-element="profile-pic"]');
+
+        // Handle card image replacement/removal
+        if (button && imageContainer) {
+          if (button.textContent.includes("Remover")) {
+            imageContainer.remove();
+            updateTextareaFromDOM();
+          }
+
+          if (button.textContent.includes("Substituir")) {
+            const fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.accept = "image/*";
+            fileInput.onchange = (e) => {
+              const file = e.target.files[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (readEvent) => {
+                  const imgElement = imageContainer.querySelector("img");
+                  imgElement.src = readEvent.target.result;
+                  setTimeout(updateTextareaFromDOM, 100);
+                };
+                reader.readAsDataURL(file);
+              }
+            };
+            fileInput.click();
+          }
+          return;
+        }
+
+        // Handle footer profile picture replacement
+        if (profilePicContainer) {
+          const fileInput = document.createElement("input");
+          fileInput.type = "file";
+          fileInput.accept = "image/*";
+          fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (readEvent) => {
+                const newImageUrl = `url('${readEvent.target.result}')`;
+                document.querySelectorAll('[data-footer-element="profile-pic"]').forEach((picDiv) => {
+                  picDiv.style.backgroundImage = newImageUrl;
+                });
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+          fileInput.click();
+        }
+      });
+    });
+
+    function updateTextareaFromDOM() {
+      const cardElements = document.querySelectorAll(".carrousel-card");
+      const allCardsContent = [];
+
+      cardElements.forEach((cardDOM) => {
+        const singleCardContent = [];
+        cardDOM.querySelectorAll(".element-wrapper").forEach((el) => {
+          const type = el.dataset.type;
+          let value = "";
+
+          switch (type) {
+            case "image":
+              const imgContainer = el.querySelector(".flex.mx-auto");
+              const imgSrc = imgContainer.querySelector("img").getAttribute("src");
+              const imgClass = el.dataset.class || "";
+              value = `"${imgSrc}"` + (imgClass ? `,CLASS="${imgClass}"` : "");
+              singleCardContent.push(`%IMAGE%${value}`);
+              break;
+            case "h1":
+              singleCardContent.push(`%H1%${reverseFormatText(el.querySelector(".text-6xl").innerHTML)}`);
+              break;
+            case "h2":
+              singleCardContent.push(`%H2%${reverseFormatText(el.querySelector(".text-5xl").innerHTML)}`);
+              break;
+            case "content":
+              singleCardContent.push(`%CONTENT%${reverseFormatText(el.querySelector(".text-4xl").innerHTML)}`);
+              break;
+            case "cta":
+              singleCardContent.push(`%CTA%${reverseFormatText(el.querySelector(".text-indigo-500").innerHTML)}`);
+              break;
+            case "quote":
+              const quoteLines = [];
+              el.querySelectorAll("[contenteditable]").forEach((lineEl) => {
+                quoteLines.push(reverseFormatText(lineEl.innerHTML));
+              });
+              value = quoteLines.join("%BR%");
+              singleCardContent.push(`%QUOTE%${value}`);
+              break;
+          }
+        });
+        allCardsContent.push(singleCardContent.join("\n"));
+      });
+
+      const newTextareaValue = allCardsContent.join("\n###\n").trim();
+      const textarea = document.getElementById("content");
+      if (textarea.value.trim() !== newTextareaValue) {
+        textarea.value = newTextareaValue;
+      }
+    }
+
+    function getTimestamp() {
+      const d = new Date();
+      const pad = (n) => n.toString().padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    }
+
+    // Function to download cards as PNG using dom-to-image
+    async function capturar() {
+      const elementos = document.querySelectorAll(".carrousel-card");
+      const resultadoContainer = document.querySelector("#resultado");
+
+      document.querySelector("#cards-container").style.zoom = "1";
+
+      // Clear previous results
+      resultadoContainer.innerHTML = "";
+      resultadoContainer.style.display = "flex";
+      resultadoContainer.style.flexDirection = "column";
+      resultadoContainer.style.gap = "20px";
+      resultadoContainer.style.alignItems = "center";
+      resultadoContainer.style.width = "100%";
+      resultadoContainer.style.height = "auto";
+
+      for (const [index, elemento] of elementos.entries()) {
+        const imageContainer = document.createElement("div");
+        imageContainer.style.display = "flex";
+        imageContainer.style.flexDirection = "column";
+        imageContainer.style.alignItems = "center";
+        imageContainer.style.gap = "10px";
+        imageContainer.style.marginBottom = "60px";
+
+        try {
+          const dataUrl = await domtoimage.toPng(elemento, {
+            width: 1080,
+            height: 1350,
+            bgcolor: "#ffffff",
+          });
+
+          const img = new Image();
+          img.style.border = "2px solid #e5e7eb";
+          img.style.borderRadius = "8px";
+          img.style.maxWidth = "540px";
+          img.style.height = "auto";
+          img.src = dataUrl;
+
+          imageContainer.appendChild(img);
+          resultadoContainer.appendChild(imageContainer);
+        } catch (error) {
+          console.error(`Erro ao capturar o card ${index + 1}:`, error);
+          const errorDiv = document.createElement("div");
+          errorDiv.innerHTML = `<p class="text-red-500 text-xl font-semibold">Erro ao capturar Card ${index + 1}: ${error.message}</p>`;
+          errorDiv.className = "bg-red-50 border border-red-200 rounded-lg p-4 text-center";
+          imageContainer.appendChild(errorDiv);
+          resultadoContainer.appendChild(imageContainer);
+        }
+      }
+      document.querySelector("#cards-container").style.zoom = "0.5";
+    }
+
+    // Function to download all cards at once as a ZIP file
+    async function capturarTodos() {
+      const elementos = document.querySelectorAll(".carrousel-card");
+      if (elementos.length === 0) {
+        alert("Nenhum card para baixar.");
+        return;
+      }
+
+      document.querySelector("#cards-container").style.zoom = "1";
+
+      const zip = new JSZip();
+      let successCount = 0;
+
+      for (const [index, elemento] of elementos.entries()) {
+        try {
+          const blob = await domtoimage.toBlob(elemento, {
+            width: 1080,
+            height: 1350,
+            bgcolor: "#ffffff",
+          });
+          zip.file(`card-${index + 1}.png`, blob);
+          successCount++;
+        } catch (error) {
+          console.error(`Erro ao processar o card ${index + 1} para o ZIP:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        const zipBlob = await zip.generateAsync({type: "blob"});
+        const timestamp = getTimestamp();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(zipBlob);
+        a.download = `${timestamp}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        alert(`${successCount} cards foram salvos em ${timestamp}.zip`);
+      } else {
+        alert("Não foi possível gerar nenhum card.");
+      }
+
+      document.querySelector("#cards-container").style.zoom = "0.5";
+    }
+  </script>
+  <body>
+    <div class="max-w-full w-[580px] flex flex-col mx-auto gap-5 px-6 py-10">
+      <span class="text-sm text-gray-500 mx-auto text-start w-full">Content input:</span>
+      <textarea id="content" class="w-full max-w-[540px] p-4 border border-gray-300 rounded-lg text-sm" rows="16" placeholder="Digite o conteúdo do card aqui..."></textarea>
+    </div>
+    <div id="cards-container" class="flex flex-col items-center justify-center gap-10 px-6 py-10">
+      <!-- Cards will be generated here -->
+    </div>
+    <div class="w-[540px] max-w-full mx-auto flex flex-col items-center justify-center gap-5 p-10 rounded-xl cursor-pointer border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/70 hover:shadow-lg bg-indigo-500/10 transition-all duration-300 ease mb-12">
+      <div class="text-xl font-semibold">
+        <span class="text-indigo-500">+ Adicionar card</span>
+      </div>
+    </div>
+
+    <!-- Download Button -->
+    <div class="w-full max-w-[1080px] mx-auto flex justify-center gap-4 mb-12">
+      <button id="preview-btn" onclick="capturar()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Gerar e Visualizar</button>
+      <button id="download-all-btn" onclick="capturarTodos()" class="bg-indigo-600 text-white font-medium py-2.5 px-6 rounded-lg hover:shadow-xl transition-all duration-300 ease text-base flex items-center gap-3">Baixar Todos</button>
+    </div>
+
+    <div id="resultado" class="w-full max-w-[1080px] mx-auto"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center invisible opacity-0 transition-opacity duration-300 ease-in-out">
+      <div id="modal-content" class="bg-white p-8 rounded-xl shadow-lg flex flex-col gap-5 w-[500px] max-w-[96vw] transform transition-transform duration-300 ease-in-out scale-95">
+        <div class="flex justify-between items-start">
+          <h2 class="text-lg font-semibold text-gray-800">Adicionar Elemento</h2>
+          <button id="close-modal-btn" class="text-gray-400 hover:text-gray-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div>
+          <label for="element-type-select" class="block text-sm font-medium text-gray-700 mb-2 tracking-9">Selecione o tipo de elemento que você quer adicionar:</label>
+          <select id="element-type-select" class="w-full text-sm px-2 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-300 ease">
+            <option value="H1">Título (H1)</option>
+            <option value="H2">Título (H2)</option>
+            <option value="CONTENT">Parágrafo (Content)</option>
+            <option value="QUOTE">Citação (Quote)</option>
+            <option value="IMAGE">Imagem</option>
+            <option value="CTA">Chamada para Ação (CTA)</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end items-center gap-2 pt-2">
+          <button id="cancel-modal-btn" class="py-2 px-5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors">Cancelar</button>
+          <button id="add-element-btn" class="py-2 px-5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm hover:shadow-md transition-all">Adicionar</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
