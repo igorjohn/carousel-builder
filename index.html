@@ -141,7 +141,12 @@
 ###
 %H1%Gostou desse conteúdo?
 %CONTENT%Compartilhe com quem você acha que também precisa dele.
-%IMAGE%"./assets/images/share.jpg",CLASS="h-[66px] !w-auto ml-[-16px] mt-1 opacity-50"`;
+%IMAGE%"./assets/images/share.jpg",CLASS="h-[66px] !w-auto ml-[-16px] mt-1 opacity-50"
+###
+%H2%Exemplo de Lista
+%LI%Primeiro item da lista.
+%LI%Segundo item com %B%negrito%/B%.
+%LI%Terceiro item.`;
 
     function parseContent(contentString) {
       const cards = contentString
@@ -157,16 +162,17 @@
           elements: [],
         };
 
-        lines.forEach((line) => {
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+
           if (line.includes("%IMAGE%")) {
             const imagePart = line.split("%IMAGE%")[1].trim();
             let src = "";
             let imageClass = "";
 
-            // Safely extract the src and class attributes using regex
             const srcMatch = imagePart.match(/^"([^"]+)"/);
             if (srcMatch) {
-              src = srcMatch[1]; // The full URL, including the base64 prefix
+              src = srcMatch[1];
             }
 
             const classMatch = imagePart.match(/CLASS="([^"]+)"/);
@@ -184,8 +190,17 @@
             card.elements.push({type: "quote", value: line.split("%QUOTE%")[1]});
           } else if (line.includes("%CTA%")) {
             card.elements.push({type: "cta", value: line.split("%CTA%")[1]});
+          } else if (line.includes("%LI%")) {
+            const listItems = [];
+            let j = i;
+            while (j < lines.length && lines[j].includes("%LI%")) {
+              listItems.push(lines[j].split("%LI%")[1]);
+              j++;
+            }
+            card.elements.push({type: "list", items: listItems});
+            i = j - 1;
           }
-        });
+        }
 
         return card;
       });
@@ -315,6 +330,14 @@
             quoteHTML += "</div>";
             elementHTML = quoteHTML;
             cardElementsHTML += wrapElement(elementHTML, element.type);
+          } else if (element.type === "list") {
+            let listHTML = '<ul class="list-disc pl-9 flex flex-col gap-3 my-3">';
+            element.items.forEach((item) => {
+                listHTML += `<li class="text-[#414150] text-4xl outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable>${formatText(item)}</li>`;
+            });
+            listHTML += "</ul>";
+            elementHTML = listHTML;
+            cardElementsHTML += wrapElement(elementHTML, element.type);
           } else if (element.type === "cta") {
             elementHTML = `<div class="text-indigo-500 text-4xl font-medium my-10 w-fit outline-none hover:ring-2 hover:ring-indigo-500/60 hover:rounded-md focus:outline-none focus:ring-2 focus:rounded-md focus:shadow-md focus:ring-indigo-500/80 transition-all duration-400 ease" contenteditable>${formatText(element.value)}</div>`;
             cardElementsHTML += wrapElement(elementHTML, element.type);
@@ -358,9 +381,44 @@
       const elementContainers = document.querySelectorAll(".card-elements-container");
       elementContainers.forEach((container) => {
         new Sortable(container, {
+          group: "shared",
           animation: 150,
           handle: ".drag-handle",
+          onAdd: function (evt) {
+            const itemEl = evt.item;
+            const cardDOM = evt.to.closest(".carrousel-card");
+            const allCards = Array.from(document.querySelectorAll(".carrousel-card"));
+            const cardIndex = allCards.indexOf(cardDOM);
+            const elementType = itemEl.dataset.elementType;
+            const dropIndex = evt.newDraggableIndex;
+
+            let newElementStr = "";
+            switch (elementType) {
+              case "H1": newElementStr = `%H1%Novo Título Principal`; break;
+              case "H2": newElementStr = `%H2%Novo Título`; break;
+              case "CONTENT": newElementStr = `%CONTENT%Novo parágrafo.`; break;
+              case "QUOTE": newElementStr = `%QUOTE%Nova citação.`; break;
+              case "CTA": newElementStr = `%CTA%Nova chamada para ação`; break;
+              case "IMAGE": newElementStr = `%IMAGE%"https://placehold.co/920x420",CLASS="max-h-[436px]"`; break;
+              case "LIST": newElementStr = `%LI%Novo item de lista.`; break;
+            }
+
+            if (newElementStr) {
+                const textarea = document.getElementById("content");
+                const cardContents = textarea.value.trim().split(/\s*###\s*/);
+
+                if (cardContents[cardIndex] !== undefined) {
+                    let lines = cardContents[cardIndex].trim() ? cardContents[cardIndex].trim().split('\n') : [];
+                    lines.splice(dropIndex, 0, newElementStr);
+                    cardContents[cardIndex] = lines.join('\n');
+                    textarea.value = cardContents.join("\n###\n");
+                    // We need to re-generate cards to get the actual element, then remove the clone
+                    generateCards(textarea.value);
+                }
+            }
+          },
           onEnd: function () {
+            // This will be called for reordering existing items
             updateTextareaFromDOM();
           },
         });
@@ -375,13 +433,14 @@
         {type: "H2", icon: "bi-type-h2", text: "Título (H2)", iconSize: "text-xl"},
         {type: "CONTENT", icon: "bi-type", text: "Texto (parágrafo)", iconSize: "text-2xl"},
         {type: "QUOTE", icon: "bi-blockquote-left", text: "Citação", iconSize: "text-2xl"},
+        {type: "LIST", icon: "bi-list-ul", text: "Lista (UL/LI)", iconSize: "text-2xl"},
         {type: "CTA", icon: "bi-arrow-up-right-square", text: "CTA", iconSize: "text-xl"},
       ];
 
       sidebarElements.forEach((element) => {
         const elementDiv = document.createElement("div");
         elementDiv.className =
-          "w-full min-h-16 flex items-center gap-2 rounded-md bg-[#ecedff] border border-slate-400/20 hover:border-indigo-500/50 hover:shadow-lg transition-all duration-300 ease cursor-grab px-3 py-3";
+          "sidebar-element w-full min-h-16 flex items-center gap-2 rounded-md bg-[#ecedff] border border-slate-400/20 hover:border-indigo-500/50 hover:shadow-lg transition-all duration-300 ease cursor-grab px-3 py-3";
         elementDiv.draggable = true;
         elementDiv.dataset.elementType = element.type;
         elementDiv.innerHTML = `
@@ -391,21 +450,19 @@
             <span class="text-base font-medium text-slate-700">${element.text}</span>
         `;
         sidebarContainer.appendChild(elementDiv);
+      });
 
-        elementDiv.addEventListener("dragstart", (event) => {
-          document.body.classList.add("dragging-active");
-          event.dataTransfer.setData("text/plain", element.type);
-          event.dataTransfer.effectAllowed = "move";
-          setTimeout(() => {
-            elementDiv.classList.add("opacity-30");
-          }, 0);
-        });
-
-        elementDiv.addEventListener("dragend", (event) => {
-          document.body.classList.remove("dragging-active");
-          elementDiv.classList.remove("opacity-30");
-          document.querySelectorAll(".drop-placeholder").forEach((p) => p.remove());
-        });
+      // Initialize SortableJS for the sidebar
+      new Sortable(sidebarContainer, {
+        group: {
+          name: "shared",
+          pull: "clone",
+          put: false, // Do not allow items to be dropped into the sidebar
+        },
+        animation: 150,
+        sort: false, // Do not sort items in the sidebar
+        onStart: () => document.body.classList.add("dragging-active"),
+        onEnd: () => document.body.classList.remove("dragging-active"),
       });
 
       const contentTextarea = document.getElementById("content");
@@ -471,6 +528,9 @@
           case "IMAGE":
             newElementStr = `%IMAGE%"https://placehold.co/920x420",CLASS="max-h-[436px]"`;
             break;
+          case "LIST":
+            newElementStr = `%LI%Novo item de lista.`;
+            break;
         }
 
         if (newElementStr) {
@@ -517,94 +577,30 @@
         true
       );
 
-      cardsContainer.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        const cardElementsContainer = event.target.closest(".card-elements-container");
-        if (cardElementsContainer) {
-          let placeholder = cardElementsContainer.querySelector(".drop-placeholder");
-          if (!placeholder) {
-            placeholder = document.createElement("div");
-            placeholder.className = "drop-placeholder";
-            placeholder.textContent = "Arraste o elemento aqui";
-          }
+      cardsContainer.addEventListener("keydown", (event) => {
+        // Create a new <li> when Enter is pressed in an existing <li>
+        if (event.key === "Enter" && !event.shiftKey) {
+          const target = event.target;
+          const isListItem = target.tagName === "LI" && target.closest('.element-wrapper[data-type="list"]');
 
-          const afterElement = getDragAfterElement(cardElementsContainer, event.clientY);
-          if (afterElement == null) {
-            const addTrigger = cardElementsContainer.querySelector(".add-element-trigger");
-            cardElementsContainer.insertBefore(placeholder, addTrigger);
-          } else {
-            cardElementsContainer.insertBefore(placeholder, afterElement);
+          if (isListItem) {
+            event.preventDefault(); // Prevent default behavior (like adding a <div>)
+
+            // Create and configure the new list item
+            const newLi = document.createElement("li");
+            newLi.className = target.className;
+            newLi.setAttribute("contenteditable", "true");
+
+            // Insert the new item and focus it
+            target.insertAdjacentElement("afterend", newLi);
+            newLi.focus();
+
+            // Update the underlying textarea after the DOM has had time to update
+            setTimeout(updateTextareaFromDOM, 50);
           }
         }
       });
 
-      cardsContainer.addEventListener("dragleave", (event) => {
-        if (event.target.closest(".card-elements-container") && !event.relatedTarget?.closest(".card-elements-container")) {
-          document.querySelectorAll(".drop-placeholder").forEach((p) => p.remove());
-        }
-      });
-
-      cardsContainer.addEventListener("drop", (event) => {
-        event.preventDefault();
-        const placeholder = document.querySelector(".drop-placeholder");
-        if (!placeholder) return;
-
-        const cardElementsContainer = placeholder.closest(".card-elements-container");
-        const cardDOM = placeholder.closest(".carrousel-card");
-        const elementType = event.dataTransfer.getData("text/plain");
-
-        if (!cardElementsContainer || !cardDOM || !elementType) {
-          placeholder.remove();
-          return;
-        }
-
-        let newElementStr = "";
-        switch (elementType) {
-          case "H1": newElementStr = `%H1%Novo Título Principal`; break;
-          case "H2": newElementStr = `%H2%Novo Título`; break;
-          case "CONTENT": newElementStr = `%CONTENT%Novo parágrafo.`; break;
-          case "QUOTE": newElementStr = `%QUOTE%Nova citação.`; break;
-          case "CTA": newElementStr = `%CTA%Nova chamada para ação`; break;
-          case "IMAGE": newElementStr = `%IMAGE%"https://placehold.co/920x420",CLASS="max-h-[436px]"`; break;
-        }
-
-        if (newElementStr) {
-          const allCards = Array.from(document.querySelectorAll(".carrousel-card"));
-          const cardIndex = allCards.indexOf(cardDOM);
-          const elementsInCard = Array.from(cardElementsContainer.children);
-          const dropIndex = elementsInCard.indexOf(placeholder);
-
-          const textarea = document.getElementById("content");
-          const cardContents = textarea.value.trim().split(/\s*###\s*/);
-
-          if (cardContents[cardIndex] !== undefined) {
-            let lines = cardContents[cardIndex].trim() ? cardContents[cardIndex].trim().split('\n') : [];
-            lines.splice(dropIndex, 0, newElementStr);
-            cardContents[cardIndex] = lines.join('\n');
-            textarea.value = cardContents.join("\n###\n");
-            textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        }
-        placeholder.remove();
-      });
-
-      function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll(".element-wrapper:not(.dragging)")];
-        return draggableElements.reduce(
-          (closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-              return {offset: offset, element: child};
-            } else {
-              return closest;
-            }
-          },
-          {offset: Number.NEGATIVE_INFINITY}
-        ).element;
-      }
-
-      // Handle image actions (remove/replace card image, replace footer image)
       cardsContainer.addEventListener("click", (event) => {
         const target = event.target;
 
@@ -724,6 +720,13 @@
               value = quoteLines.join("%BR%");
               singleCardContent.push(`%QUOTE%${value}`);
               break;
+            case "list":
+                const listItems = [];
+                el.querySelectorAll("li").forEach(li => {
+                    listItems.push(`%LI%${reverseFormatText(li.innerHTML)}`);
+                });
+                singleCardContent.push(listItems.join('\n'));
+                break;
           }
         });
         allCardsContent.push(singleCardContent.join("\n"));
@@ -890,6 +893,7 @@
             <option value="CONTENT">Parágrafo (Content)</option>
             <option value="QUOTE">Citação (Quote)</option>
             <option value="IMAGE">Imagem</option>
+            <option value="LIST">Lista (UL/LI)</option>
             <option value="CTA">Chamada para Ação (CTA)</option>
           </select>
         </div>
